@@ -270,8 +270,8 @@
         var VW = 1000, VH = 720;
         var RIM = { x: 500, y: 150, half: 32 };
         var BOARD = { x: 434, y: 86, w: 132, h: 28 };
-        var POST_L = { x: RIM.x - RIM.half, y: RIM.y, r: 5 };
-        var POST_R = { x: RIM.x + RIM.half, y: RIM.y, r: 5 };
+        var POST_L = { x: RIM.x - RIM.half, y: RIM.y, r: 3 };
+        var POST_R = { x: RIM.x + RIM.half, y: RIM.y, r: 3 };
         var FLOOR_Y = 706;
         var GRAV = 1350;
         var BALL_R = 15;
@@ -717,16 +717,28 @@
           ball.rot += ball.vx * dt / BALL_R * 0.6;
 
           if (shot && !shot.scored) {
-            // rim posts
-            if (circleBounce(POST_L.x, POST_L.y, POST_L.r, 0.45) ||
-                circleBounce(POST_R.x, POST_R.y, POST_R.r, 0.45)) {
+            // Rim posts: small and soft. A ball dropping into the hoop
+            // inside the clean-entry window slips past the iron untouched.
+            // A ball that brushes a post is absorbed and slides along it
+            // instead of being launched back out, so a well-aimed shot —
+            // above all from Top of the Key, where the ball threads the
+            // rim going up and again coming down — drops instead of
+            // rattling out. Genuinely off-line balls still catch the rim.
+            var cleanDrop = ball.vy > 0 &&
+              Math.abs(ball.x - RIM.x) < RIM.half - 5 &&
+              ball.y < RIM.y + 8;
+            if (!cleanDrop &&
+                (circleBounce(POST_L.x, POST_L.y, POST_L.r, 0.12) ||
+                 circleBounce(POST_R.x, POST_R.y, POST_R.r, 0.12))) {
+              ball.vx *= 0.92;
+              ball.vy *= 0.98;
               if (!shot.rim) { shot.rim = true; sRim(); }
             }
             // backboard: visual only — the ball passes straight through it
             // and is never blocked, bounced, or deflected by the board.
             // score: center crosses rim line downward inside the hoop
             if (ball.vy > 0 && prevY < RIM.y && ball.y >= RIM.y &&
-                Math.abs(ball.x - RIM.x) < RIM.half - 7) {
+                Math.abs(ball.x - RIM.x) < RIM.half - 5) {
               shot.scored = true;
               netSway = 1; netTimer = 0;
               sSwish();
