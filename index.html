@@ -270,8 +270,6 @@
         var VW = 1000, VH = 720;
         var RIM = { x: 500, y: 150, half: 32 };
         var BOARD = { x: 434, y: 86, w: 132, h: 28 };
-        var POST_L = { x: RIM.x - RIM.half, y: RIM.y, r: 3 };
-        var POST_R = { x: RIM.x + RIM.half, y: RIM.y, r: 3 };
         var FLOOR_Y = 706;
         var GRAV = 1350;
         var BALL_R = 15;
@@ -692,23 +690,6 @@
         }
 
         /* ================= Physics ================= */
-        function circleBounce(cx, cy, cr, rest) {
-          var dx = ball.x - cx, dy = ball.y - cy;
-          var d = Math.hypot(dx, dy), min = BALL_R + cr;
-          if (d > 0 && d < min) {
-            var nx = dx / d, ny = dy / d;
-            ball.x = cx + nx * min;
-            ball.y = cy + ny * min;
-            var vn = ball.vx * nx + ball.vy * ny;
-            if (vn < 0) {
-              ball.vx -= (1 + rest) * vn * nx;
-              ball.vy -= (1 + rest) * vn * ny;
-              return true;
-            }
-          }
-          return false;
-        }
-
         function stepPhysics(dt) {
           var prevY = ball.y;
           ball.vy += GRAV * dt;
@@ -717,25 +698,10 @@
           ball.rot += ball.vx * dt / BALL_R * 0.6;
 
           if (shot && !shot.scored) {
-            // Rim posts: small and soft. A ball dropping into the hoop
-            // inside the clean-entry window slips past the iron untouched.
-            // A ball that brushes a post is absorbed and slides along it
-            // instead of being launched back out, so a well-aimed shot —
-            // above all from Top of the Key, where the ball threads the
-            // rim going up and again coming down — drops instead of
-            // rattling out. Genuinely off-line balls still catch the rim.
-            var cleanDrop = ball.vy > 0 &&
-              Math.abs(ball.x - RIM.x) < RIM.half - 5 &&
-              ball.y < RIM.y + 8;
-            if (!cleanDrop &&
-                (circleBounce(POST_L.x, POST_L.y, POST_L.r, 0.12) ||
-                 circleBounce(POST_R.x, POST_R.y, POST_R.r, 0.12))) {
-              ball.vx *= 0.92;
-              ball.vy *= 0.98;
-              if (!shot.rim) { shot.rim = true; sRim(); }
-            }
-            // backboard: visual only — the ball passes straight through it
-            // and is never blocked, bounced, or deflected by the board.
+            // rim and backboard: visual only — the ball can never hit the
+            // iron or the board, so nothing bounces off, rattles on, or is
+            // deflected by either. A shot whose arc carries its center down
+            // through the hoop opening scores; anything else flies past.
             // score: center crosses rim line downward inside the hoop
             if (ball.vy > 0 && prevY < RIM.y && ball.y >= RIM.y &&
                 Math.abs(ball.x - RIM.x) < RIM.half - 5) {
