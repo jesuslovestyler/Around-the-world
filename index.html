@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Around the World</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #eaf1fb;
+        --panel: #ffffff;
+        --ink: #16233c;
+        --ink-soft: #4a5a75;
+        --line: #d3ddef;
+        --accent: #e85d1f;
+        --accent-dark: #c74a12;
+        --good: #1d9e57;
+        --bad: #d63a2f;
+        --gold: #f5a623;
+        --shadow: 0 10px 30px rgba(22, 35, 60, 0.14);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c1424;
+          --panel: #16223a;
+          --ink: #edf2fd;
+          --ink-soft: #9db0cf;
+          --line: #2a3a5c;
+          --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 1020px;
+        margin: 0 auto;
+        padding: 14px 14px 26px;
+      }
+
+      /* ---------- HUD ---------- */
+      .hud {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 12px 14px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 18px;
+        margin-bottom: 12px;
+      }
+      .hud .spot-block { min-width: 150px; }
+      .hud .spot-name {
+        font-weight: 900;
+        font-size: 1.05rem;
+        letter-spacing: 0.01em;
+        line-height: 1.15;
+      }
+      .hud .spot-sub { color: var(--ink-soft); font-size: 0.82rem; font-weight: 500; }
+      .dots { display: flex; gap: 6px; align-items: center; flex: 1 1 auto; justify-content: center; }
+      .dot {
+        width: 22px; height: 22px; border-radius: 50%;
+        border: 2px solid var(--line);
+        color: var(--ink-soft);
+        font-size: 0.68rem; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        background: transparent;
+        transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+      }
+      .dot.done { background: var(--good); border-color: var(--good); color: #fff; }
+      .dot.now { border-color: var(--accent); color: var(--accent); transform: scale(1.18); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+      .stats { display: flex; gap: 14px; align-items: center; font-size: 0.9rem; font-weight: 700; white-space: nowrap; }
+      .stats .lbl { color: var(--ink-soft); font-weight: 500; font-size: 0.78rem; display: block; line-height: 1.1; }
+      .chances { display: flex; gap: 5px; align-items: center; }
+      .pip { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--ink-soft); opacity: 0.55; }
+      .pip.left { background: var(--gold); border-color: var(--gold); opacity: 1; }
+      .pip.used { background: var(--bad); border-color: var(--bad); opacity: 1; }
+      .hud-btns { display: flex; gap: 8px; margin-left: auto; }
+      .icon-btn {
+        width: 40px; height: 40px; border-radius: 10px;
+        border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+        display: flex; align-items: center; justify-content: center; cursor: pointer;
+      }
+      .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+      .icon-btn svg { width: 21px; height: 21px; }
+
+      /* ---------- Stage ---------- */
+      .stage {
+        position: relative;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--line);
+        background: #7db3e8;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        touch-action: none;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      canvas:active { cursor: grabbing; }
+
+      .banner {
+        position: absolute;
+        top: 12px; left: 50%;
+        transform: translate(-50%, -8px);
+        background: rgba(14, 24, 44, 0.88);
+        color: #fff;
+        font-weight: 900;
+        font-size: clamp(0.95rem, 3.4vw, 1.35rem);
+        padding: 9px 20px;
+        border-radius: 999px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        white-space: nowrap;
+        max-width: 94%;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+      .banner.show { opacity: 1; transform: translate(-50%, 0); }
+      .banner.good { background: var(--good); }
+      .banner.bad { background: var(--bad); }
+
+      /* ---------- Win card ---------- */
+      .win-veil {
+        position: absolute; inset: 0;
+        background: rgba(10, 18, 34, 0.45);
+        display: flex; align-items: center; justify-content: center;
+        padding: 14px;
+      }
+      .win-veil[hidden] { display: none; }
+      .win-card {
+        background: var(--panel);
+        color: var(--ink);
+        border-radius: 16px;
+        padding: 20px 22px 18px;
+        width: min(94%, 400px);
+        max-height: 94%;
+        overflow: auto;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+      .win-card h2 {
+        margin: 0 0 4px;
+        font-size: 1.55rem;
+        font-weight: 900;
+        line-height: 1.15;
+      }
+      .win-card .sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 0.92rem; }
+      .win-stats {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        margin-bottom: 16px;
+      }
+      .win-stats .cell {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 6px;
+      }
+      .win-stats .num { font-size: 1.3rem; font-weight: 900; line-height: 1.1; }
+      .win-stats .cap { font-size: 0.72rem; color: var(--ink-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+      .play-again {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        font-family: inherit;
+        font-weight: 900;
+        font-size: 1.05rem;
+        padding: 13px 30px;
+        border-radius: 12px;
+        cursor: pointer;
+        width: 100%;
+      }
+      .play-again:hover { background: var(--accent-dark); }
+
+      .how {
+        margin: 12px 4px 0;
+        color: var(--ink-soft);
+        font-size: 0.92rem;
+        line-height: 1.5;
+        text-align: center;
+      }
+      .how strong { color: var(--ink); }
+
+      @media (max-width: 560px) {
+        .wrap { padding: 10px 10px 20px; }
+        .hud { gap: 8px 12px; padding: 10px 12px; }
+        .dot { width: 19px; height: 19px; font-size: 0.6rem; }
+        .dots { order: 5; flex-basis: 100%; }
+        .stats { font-size: 0.84rem; gap: 10px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .banner, .dot { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hud" aria-label="Game status">
+        <div class="spot-block">
+          <div class="spot-name" id="spotName">Left Corner</div>
+          <div class="spot-sub" id="spotSub">Spot 1 of 9</div>
+        </div>
+        <div class="dots" id="dots" aria-label="Spot progress"></div>
+        <div class="stats">
+          <div><span class="lbl">Shots</span><span id="shotsStat">0/0</span></div>
+          <div><span class="lbl">Streak</span><span id="streakStat">0</span></div>
+          <div>
+            <span class="lbl">Chances left</span>
+            <span class="chances" id="pips"><span class="pip left"></span><span class="pip left"></span></span>
+          </div>
+        </div>
+        <div class="hud-btns">
+          <button class="icon-btn" id="soundBtn" aria-label="Turn sound off" title="Sound on/off">
+            <svg id="soundOnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>
+            <svg id="soundOffIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          </button>
+          <button class="icon-btn" id="restartBtn" aria-label="Restart game" title="Restart game">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.3"/><polyline points="3 4 3 9 8 9"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <div class="stage" id="stage">
+        <canvas id="game" aria-label="Basketball court. Drag back from the ball and release to shoot."></canvas>
+        <div class="banner" id="banner" role="status"></div>
+        <div class="win-veil" id="winVeil" hidden>
+          <div class="win-card">
+            <h2>You went around the world!</h2>
+            <p class="sub">Every spot, sunk. Nice shooting.</p>
+            <div class="win-stats">
+              <div class="cell"><div class="num" id="winShots">0</div><div class="cap">Shots taken</div></div>
+              <div class="cell"><div class="num" id="winAcc">0%</div><div class="cap">Accuracy</div></div>
+              <div class="cell"><div class="num" id="winStreak">0</div><div class="cap">Best streak</div></div>
+              <div class="cell"><div class="num" id="winTrips">0</div><div class="cap">Trips back to start</div></div>
+            </div>
+            <button class="play-again" id="playAgainBtn">Play again</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="how">
+        <strong>How to play:</strong> press and drag back from the ball to aim — the dotted arc shows the flight —
+        then release to shoot. Sink a shot to move to the next spot. Miss twice at one spot and you go
+        back to Spot 1. Clear all 9 spots to go around the world.
+      </p>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /* ================= Court geometry (virtual 1000 x 720) ================= */
+        var VW = 1000, VH = 720;
+        var RIM = { x: 500, y: 150, half: 32 };
+        var BOARD = { x: 434, y: 86, w: 132, h: 28 };
+        var POST_L = { x: RIM.x - RIM.half, y: RIM.y, r: 5 };
+        var POST_R = { x: RIM.x + RIM.half, y: RIM.y, r: 5 };
+        var FLOOR_Y = 706;
+        var GRAV = 1350;
+        var BALL_R = 15;
+
+        var NAMES = ["Left Corner", "Left Wing", "Left Elbow", "Left Hash", "Top of the Key",
+                     "Right Hash", "Right Elbow", "Right Wing", "Right Corner"];
+        var ANG = [140, 122, 108, 97, 90, 83, 72, 58, 40];
+        var RAD = [520, 480, 470, 470, 480, 470, 470, 480, 520];
+        var SPOTS = ANG.map(function (a, i) {
+          var r = a * Math.PI / 180;
+          return { x: RIM.x + RAD[i] * Math.cos(r), y: RIM.y + RAD[i] * Math.sin(r), name: NAMES[i] };
+        });
+
+        /* ================= State ================= */
+        var spot = 0;               // current spot index
+        var done = SPOTS.map(function () { return false; });
+        var missesHere = 0;         // misses at current spot (2 = back to start)
+        var shots = 0, makes = 0, streak = 0, bestStreak = 0, tripsBack = 0;
+        var mode = "aim";           // aim | fly | win
+        var ball = { x: 0, y: 0, vx: 0, vy: 0, rot: 0 };
+        var aiming = false, dragStart = null, dragCur = null;
+        var shot = null;            // per-shot info while flying
+        var confetti = [];
+        var netSway = 0, netTimer = 0;
+        var pulse = 0;
+
+        /* ================= DOM ================= */
+        var stage = document.getElementById("stage");
+        var canvas = document.getElementById("game");
+        var ctx = canvas.getContext("2d");
+        var banner = document.getElementById("banner");
+        var bannerTimer = null;
+
+        var dotsEl = document.getElementById("dots");
+        SPOTS.forEach(function (s, i) {
+          var d = document.createElement("div");
+          d.className = "dot";
+          d.textContent = String(i + 1);
+          dotsEl.appendChild(d);
+        });
+
+        function ballHome() {
+          var s = SPOTS[spot];
+          return { x: s.x, y: s.y - 56 };
+        }
+        function resetBall() {
+          var h = ballHome();
+          ball.x = h.x; ball.y = h.y; ball.vx = 0; ball.vy = 0; ball.rot = 0;
+        }
+        resetBall();
+
+        function updateHUD() {
+          document.getElementById("spotName").textContent = SPOTS[spot].name;
+          document.getElementById("spotSub").textContent = "Spot " + (spot + 1) + " of " + SPOTS.length;
+          document.getElementById("shotsStat").textContent = makes + "/" + shots;
+          document.getElementById("streakStat").textContent = String(streak);
+          var dotEls = dotsEl.children;
+          for (var i = 0; i < dotEls.length; i++) {
+            dotEls[i].className = "dot" + (done[i] ? " done" : (i === spot && mode !== "win" ? " now" : ""));
+            dotEls[i].textContent = done[i] ? "✓" : String(i + 1);
+          }
+          var pips = document.getElementById("pips").children;
+          for (var j = 0; j < pips.length; j++) {
+            pips[j].className = "pip " + (j < missesHere ? "used" : "left");
+          }
+        }
+
+        function showBanner(text, kind, ms) {
+          banner.textContent = text;
+          banner.className = "banner show " + (kind || "");
+          if (bannerTimer) clearTimeout(bannerTimer);
+          bannerTimer = setTimeout(function () { banner.className = "banner"; }, ms || 1700);
+        }
+
+        /* ================= Sound (tiny WebAudio synth) ================= */
+        var audioCtx = null, soundOn = true;
+        function ac() {
+          if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+          }
+          if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+          return audioCtx;
+        }
+        function tone(freqA, freqB, dur, type, vol) {
+          if (!soundOn) return;
+          var a = ac(); if (!a) return;
+          var o = a.createOscillator(), g = a.createGain();
+          o.type = type || "sine";
+          o.frequency.setValueAtTime(freqA, a.currentTime);
+          o.frequency.exponentialRampToValueAtTime(Math.max(freqB, 1), a.currentTime + dur);
+          g.gain.setValueAtTime(vol, a.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+          o.connect(g); g.connect(a.destination);
+          o.start(); o.stop(a.currentTime + dur);
+        }
+        function noiseBurst(dur, freqA, freqB, vol) {
+          if (!soundOn) return;
+          var a = ac(); if (!a) return;
+          var len = Math.floor(a.sampleRate * dur);
+          var buf = a.createBuffer(1, len, a.sampleRate);
+          var data = buf.getChannelData(0);
+          for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+          var src = a.createBufferSource(); src.buffer = buf;
+          var f = a.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.1;
+          f.frequency.setValueAtTime(freqA, a.currentTime);
+          f.frequency.exponentialRampToValueAtTime(freqB, a.currentTime + dur);
+          var g = a.createGain();
+          g.gain.setValueAtTime(vol, a.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+          src.connect(f); f.connect(g); g.connect(a.destination);
+          src.start(); src.stop(a.currentTime + dur);
+        }
+        var sBounce = function (hard) { tone(hard ? 150 : 120, 55, 0.09, "sine", hard ? 0.25 : 0.13); };
+        var sRim = function () { tone(1150, 900, 0.13, "triangle", 0.16); tone(740, 620, 0.1, "triangle", 0.1); };
+        var sBoard = function () { tone(220, 120, 0.08, "square", 0.07); };
+        var sSwish = function () { noiseBurst(0.28, 1600, 500, 0.3); };
+        var sWin = function () {
+          if (!soundOn) return;
+          var notes = [523, 659, 784, 1047];
+          notes.forEach(function (n, i) {
+            setTimeout(function () { tone(n, n, 0.22, "triangle", 0.18); }, i * 110);
+          });
+        };
+
+        /* ================= Canvas sizing ================= */
+        function fit() {
+          var w = stage.clientWidth;
+          var h = Math.round(w * VH / VW);
+          canvas.style.height = h + "px";
+          var dpr = Math.min(window.devicePixelRatio || 1, 2);
+          canvas.width = Math.round(w * dpr);
+          canvas.height = Math.round(h * dpr);
+          ctx.setTransform(canvas.width / VW, 0, 0, canvas.width / VW, 0, 0);
+        }
+        window.addEventListener("resize", fit);
+
+        /* ================= Crowd (pre-generated) ================= */
+        var crowd = [];
+        (function () {
+          var colors = ["#f2c14e", "#e86a92", "#7fb069", "#ece4b7", "#90caf9", "#f4a259", "#bc4b51", "#d9d9d9"];
+          for (var i = 0; i < 300; i++) {
+            crowd.push({
+              x: 8 + Math.random() * (VW - 16),
+              y: 14 + Math.random() * 330,
+              r: 3 + Math.random() * 3.5,
+              c: colors[Math.floor(Math.random() * colors.length)]
+            });
+          }
+        })();
+
+        /* ================= Drawing ================= */
+        function drawCourt() {
+          // Arena wall
+          var wall = ctx.createLinearGradient(0, 0, 0, 432);
+          wall.addColorStop(0, "#274b7a");
+          wall.addColorStop(1, "#3d6ea8");
+          ctx.fillStyle = wall;
+          ctx.fillRect(0, 0, VW, 432);
+          // Crowd
+          for (var i = 0; i < crowd.length; i++) {
+            var p = crowd[i];
+            ctx.fillStyle = p.c;
+            ctx.globalAlpha = 0.75;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          // Arena sign
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.font = "900 30px Archivo, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("AROUND THE WORLD", VW / 2, 46);
+          // Ad boards strip
+          ctx.fillStyle = "#17335c";
+          ctx.fillRect(0, 398, VW, 34);
+          ctx.fillStyle = "#f5a623";
+          ctx.fillRect(0, 398, VW, 4);
+
+          // Court floor
+          var floor = ctx.createLinearGradient(0, 432, 0, VH);
+          floor.addColorStop(0, "#eda95e");
+          floor.addColorStop(1, "#dd8438");
+          ctx.fillStyle = floor;
+          ctx.fillRect(0, 432, VW, VH - 432);
+          ctx.strokeStyle = "rgba(120, 60, 10, 0.18)";
+          ctx.lineWidth = 2;
+          var rows = [452, 478, 510, 548, 592, 642, 698];
+          rows.forEach(function (y) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(VW, y); ctx.stroke();
+          });
+          // The paint (lane)
+          ctx.fillStyle = "rgba(37, 99, 235, 0.45)";
+          ctx.fillRect(438, 432, 124, 218);
+          ctx.strokeStyle = "rgba(255,255,255,0.75)";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(438, 432, 124, 218);
+          // Route dashes through the spots
+          ctx.strokeStyle = "rgba(255,255,255,0.55)";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([10, 12]);
+          ctx.beginPath();
+          SPOTS.forEach(function (s, i) {
+            if (i === 0) ctx.moveTo(s.x, s.y + 8); else ctx.lineTo(s.x, s.y + 8);
+          });
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        function drawSpots(t) {
+          SPOTS.forEach(function (s, i) {
+            var isDone = done[i], isNow = i === spot && mode !== "win";
+            ctx.save();
+            ctx.translate(s.x, s.y + 8);
+            ctx.scale(1, 0.36);
+            ctx.beginPath();
+            ctx.arc(0, 0, 27, 0, Math.PI * 2);
+            if (isDone) {
+              ctx.fillStyle = "#1d9e57";
+              ctx.fill();
+            } else {
+              ctx.fillStyle = "rgba(255,255,255,0.25)";
+              ctx.fill();
+              ctx.lineWidth = 5;
+              ctx.strokeStyle = isNow ? "#ffffff" : "rgba(255,255,255,0.8)";
+              ctx.stroke();
+            }
+            if (isNow) {
+              var pr = 27 + 7 + Math.sin(t * 4) * 3.5;
+              ctx.beginPath();
+              ctx.arc(0, 0, pr, 0, Math.PI * 2);
+              ctx.lineWidth = 4;
+              ctx.strokeStyle = "rgba(232, 93, 31, 0.9)";
+              ctx.stroke();
+            }
+            ctx.restore();
+            // number / check
+            ctx.fillStyle = isDone ? "#ffffff" : "#7a3c10";
+            ctx.font = "900 15px Archivo, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(isDone ? "✓" : String(i + 1), s.x, s.y + 13);
+          });
+        }
+
+        function drawHoop() {
+          // support arm
+          ctx.fillStyle = "#5b6b82";
+          ctx.fillRect(RIM.x - 6, 22, 12, BOARD.y - 20);
+          // backboard
+          ctx.fillStyle = "#f4f8ff";
+          ctx.fillRect(BOARD.x, BOARD.y, BOARD.w, BOARD.h);
+          ctx.strokeStyle = "#22314d";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(BOARD.x, BOARD.y, BOARD.w, BOARD.h);
+          ctx.strokeStyle = "#e85d1f";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(RIM.x - 24, BOARD.y + 8, 48, BOARD.h - 8);
+          // bracket
+          ctx.fillStyle = "#8a97ab";
+          ctx.fillRect(RIM.x - 5, BOARD.y + BOARD.h, 10, RIM.y - BOARD.y - BOARD.h - 2);
+          // net (behind ball, drawn before rim front lip)
+          var sway = netSway * Math.sin(netTimer * 14) * Math.max(0, 1 - netTimer * 1.6);
+          ctx.strokeStyle = "rgba(255,255,255,0.9)";
+          ctx.lineWidth = 2;
+          for (var i = -2; i <= 2; i++) {
+            var topX = RIM.x + i * (RIM.half / 2.2);
+            var botX = RIM.x + i * 6 + sway * 6;
+            ctx.beginPath();
+            ctx.moveTo(topX, RIM.y + 3);
+            ctx.quadraticCurveTo(RIM.x + i * 10 + sway * 3, RIM.y + 18, botX, RIM.y + 34);
+            ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.moveTo(RIM.x - RIM.half + 2, RIM.y + 20 + sway);
+          ctx.quadraticCurveTo(RIM.x, RIM.y + 27 + sway * 1.4, RIM.x + RIM.half - 2, RIM.y + 20 - sway);
+          ctx.stroke();
+          // rim
+          ctx.strokeStyle = "#d63a1e";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.ellipse(RIM.x, RIM.y, RIM.half, 7, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        function drawPlayer() {
+          if (mode === "win") return;
+          var s = SPOTS[spot];
+          var x = s.x, feet = s.y + 8;
+          ctx.strokeStyle = "#22314d";
+          ctx.fillStyle = "#22314d";
+          ctx.lineWidth = 5;
+          ctx.lineCap = "round";
+          // legs
+          ctx.beginPath();
+          ctx.moveTo(x, feet - 26); ctx.lineTo(x - 8, feet);
+          ctx.moveTo(x, feet - 26); ctx.lineTo(x + 8, feet);
+          ctx.stroke();
+          // torso (jersey)
+          ctx.fillStyle = "#2563eb";
+          ctx.beginPath();
+          ctx.arc(x, feet - 40, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(x - 12, feet - 40, 24, 16);
+          // head
+          ctx.fillStyle = "#f0b48a";
+          ctx.beginPath();
+          ctx.arc(x, feet - 62, 9, 0, Math.PI * 2);
+          ctx.fill();
+          // arms
+          ctx.strokeStyle = "#f0b48a";
+          ctx.lineWidth = 4.5;
+          ctx.beginPath();
+          if (mode === "aim") {
+            ctx.moveTo(x - 8, feet - 44); ctx.lineTo(x - 10, feet - 56);
+            ctx.moveTo(x + 8, feet - 44); ctx.lineTo(x + 10, feet - 56);
+          } else {
+            ctx.moveTo(x - 8, feet - 44); ctx.lineTo(x - 14, feet - 60);
+            ctx.moveTo(x + 8, feet - 44); ctx.lineTo(x + 14, feet - 60);
+          }
+          ctx.stroke();
+          ctx.lineCap = "butt";
+        }
+
+        function drawBall() {
+          ctx.save();
+          ctx.translate(ball.x, ball.y);
+          ctx.rotate(ball.rot);
+          ctx.beginPath();
+          ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+          ctx.fillStyle = "#ef7d1a";
+          ctx.fill();
+          ctx.strokeStyle = "#7a3c10";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-BALL_R, 0); ctx.lineTo(BALL_R, 0); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, -BALL_R); ctx.lineTo(0, BALL_R); ctx.stroke();
+          ctx.beginPath(); ctx.arc(-BALL_R * 1.15, 0, BALL_R * 0.75, -0.9, 0.9); ctx.stroke();
+          ctx.beginPath(); ctx.arc(BALL_R * 1.15, 0, BALL_R * 0.75, Math.PI - 0.9, Math.PI + 0.9); ctx.stroke();
+          ctx.restore();
+        }
+
+        function launchVelocity() {
+          var dx = dragStart.x - dragCur.x;
+          var dy = dragStart.y - dragCur.y;
+          var len = Math.hypot(dx, dy);
+          var maxDrag = 300;
+          if (len > maxDrag) { dx *= maxDrag / len; dy *= maxDrag / len; }
+          return { vx: dx * 4.4, vy: dy * 4.4, power: Math.min(len, maxDrag) / maxDrag };
+        }
+
+        function drawAim() {
+          if (!aiming || !dragStart || !dragCur || mode !== "aim") return;
+          var v = launchVelocity();
+          if (Math.hypot(dragStart.x - dragCur.x, dragStart.y - dragCur.y) < 10) return;
+          // slingshot band
+          ctx.strokeStyle = "rgba(255,255,255,0.65)";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([4, 6]);
+          ctx.beginPath();
+          ctx.moveTo(ball.x, ball.y);
+          ctx.lineTo(dragCur.x, dragCur.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          // trajectory dots
+          var x = ball.x, y = ball.y, vx = v.vx, vy = v.vy;
+          var dt = 0.045;
+          for (var i = 0; i < 26; i++) {
+            vy += GRAV * dt;
+            x += vx * dt;
+            y += vy * dt;
+            if (y > FLOOR_Y) break;
+            var a = 0.85 * (1 - i / 26) + 0.1;
+            ctx.fillStyle = "rgba(255,255,255," + a.toFixed(2) + ")";
+            ctx.beginPath();
+            ctx.arc(x, y, 5.5 - i * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          // power bar
+          var w = 110, h = 10, bx = ball.x - w / 2, by = ball.y + 30;
+          ctx.fillStyle = "rgba(14,24,44,0.55)";
+          ctx.fillRect(bx, by, w, h);
+          ctx.fillStyle = v.power > 0.85 ? "#d63a2f" : (v.power > 0.55 ? "#f5a623" : "#1d9e57");
+          ctx.fillRect(bx + 1.5, by + 1.5, (w - 3) * v.power, h - 3);
+        }
+
+        function drawConfetti(dt) {
+          for (var i = confetti.length - 1; i >= 0; i--) {
+            var c = confetti[i];
+            c.vy += 500 * dt;
+            c.x += c.vx * dt;
+            c.y += c.vy * dt;
+            c.rot += c.vr * dt;
+            c.life -= dt;
+            if (c.life <= 0 || c.y > VH + 20) { confetti.splice(i, 1); continue; }
+            ctx.save();
+            ctx.translate(c.x, c.y);
+            ctx.rotate(c.rot);
+            ctx.fillStyle = c.color;
+            ctx.globalAlpha = Math.min(1, c.life);
+            ctx.fillRect(-5, -3, 10, 6);
+            ctx.restore();
+          }
+          ctx.globalAlpha = 1;
+        }
+
+        function spawnConfetti() {
+          var colors = ["#e85d1f", "#f5a623", "#1d9e57", "#2563eb", "#e86a92", "#ffffff"];
+          for (var i = 0; i < 130; i++) {
+            confetti.push({
+              x: RIM.x + (Math.random() - 0.5) * 220,
+              y: RIM.y + Math.random() * 40,
+              vx: (Math.random() - 0.5) * 320,
+              vy: -120 - Math.random() * 260,
+              rot: Math.random() * Math.PI,
+              vr: (Math.random() - 0.5) * 10,
+              color: colors[Math.floor(Math.random() * colors.length)],
+              life: 1.6 + Math.random() * 1.2
+            });
+          }
+        }
+
+        /* ================= Physics ================= */
+        function circleBounce(cx, cy, cr, rest) {
+          var dx = ball.x - cx, dy = ball.y - cy;
+          var d = Math.hypot(dx, dy), min = BALL_R + cr;
+          if (d > 0 && d < min) {
+            var nx = dx / d, ny = dy / d;
+            ball.x = cx + nx * min;
+            ball.y = cy + ny * min;
+            var vn = ball.vx * nx + ball.vy * ny;
+            if (vn < 0) {
+              ball.vx -= (1 + rest) * vn * nx;
+              ball.vy -= (1 + rest) * vn * ny;
+              return true;
+            }
+          }
+          return false;
+        }
+
+        function stepPhysics(dt) {
+          var prevY = ball.y;
+          ball.vy += GRAV * dt;
+          ball.x += ball.vx * dt;
+          ball.y += ball.vy * dt;
+          ball.rot += ball.vx * dt / BALL_R * 0.6;
+
+          if (shot && !shot.scored) {
+            // rim posts
+            if (circleBounce(POST_L.x, POST_L.y, POST_L.r, 0.45) ||
+                circleBounce(POST_R.x, POST_R.y, POST_R.r, 0.45)) {
+              if (!shot.rim) { shot.rim = true; sRim(); }
+            }
+            // backboard (solid rect)
+            var nx = Math.max(BOARD.x, Math.min(ball.x, BOARD.x + BOARD.w));
+            var ny = Math.max(BOARD.y, Math.min(ball.y, BOARD.y + BOARD.h));
+            var dx = ball.x - nx, dy = ball.y - ny;
+            var d2 = dx * dx + dy * dy;
+            if (d2 < BALL_R * BALL_R) {
+              var d = Math.sqrt(d2) || 0.001;
+              var ux = dx / d, uy = dy / d;
+              if (d2 === 0) { ux = 0; uy = 1; }
+              ball.x = nx + ux * BALL_R;
+              ball.y = ny + uy * BALL_R;
+              var vn = ball.vx * ux + ball.vy * uy;
+              if (vn < 0) {
+                ball.vx -= 1.55 * vn * ux;
+                ball.vy -= 1.55 * vn * uy;
+                if (!shot.board) { shot.board = true; sBoard(); }
+              }
+            }
+            // score: center crosses rim line downward inside the hoop
+            if (ball.vy > 0 && prevY < RIM.y && ball.y >= RIM.y &&
+                Math.abs(ball.x - RIM.x) < RIM.half - 7) {
+              shot.scored = true;
+              netSway = 1; netTimer = 0;
+              sSwish();
+            }
+          }
+
+          // through the net: slow + center the ball
+          if (shot && shot.scored && ball.y > RIM.y - 4 && ball.y < RIM.y + 52) {
+            ball.x += (RIM.x - ball.x) * 0.35;
+            ball.vx *= 0.6;
+            if (ball.vy > 300) ball.vy = 300;
+          }
+
+          // walls
+          if (ball.x < BALL_R) { ball.x = BALL_R; ball.vx = Math.abs(ball.vx) * 0.6; }
+          if (ball.x > VW - BALL_R) { ball.x = VW - BALL_R; ball.vx = -Math.abs(ball.vx) * 0.6; }
+          if (ball.y < BALL_R) { ball.y = BALL_R; ball.vy = Math.abs(ball.vy) * 0.5; }
+          // floor
+          if (ball.y > FLOOR_Y - BALL_R) {
+            ball.y = FLOOR_Y - BALL_R;
+            if (Math.abs(ball.vy) > 90) {
+              ball.vy = -ball.vy * 0.52;
+              sBounce(Math.abs(ball.vy) > 350);
+            } else {
+              ball.vy = 0;
+            }
+            ball.vx *= 0.82;
+            if (Math.abs(ball.vx) < 6) ball.vx = 0;
+          }
+        }
+
+        function resolveShot() {
+          var scored = shot.scored;
+          var hitRim = shot.rim, hitBoard = shot.board;
+          shot = null;
+          if (scored) {
+            makes++;
+            streak++;
+            if (streak > bestStreak) bestStreak = streak;
+            done[spot] = true;
+            missesHere = 0;
+            if (spot === SPOTS.length - 1) {
+              mode = "win";
+              updateHUD();
+              spawnConfetti();
+              sWin();
+              document.getElementById("winShots").textContent = String(shots);
+              document.getElementById("winAcc").textContent = Math.round(makes / shots * 100) + "%";
+              document.getElementById("winStreak").textContent = String(bestStreak);
+              document.getElementById("winTrips").textContent = String(tripsBack);
+              document.getElementById("winVeil").hidden = false;
+              return;
+            }
+            showBanner(spot === SPOTS.length - 2 ? "Swish! One spot left!" : "Swish! On to spot " + (spot + 2), "good");
+            spot++;
+          } else {
+            streak = 0;
+            missesHere++;
+            if (missesHere >= 2) {
+              tripsBack++;
+              spot = 0;
+              missesHere = 0;
+              done = SPOTS.map(function () { return false; });
+              showBanner("Two misses — back to Spot 1!", "bad", 2100);
+            } else {
+              showBanner(hitRim ? "Off the rim — one chance left" :
+                         hitBoard ? "Off the board — one chance left" :
+                         "Air ball — one chance left", "bad");
+            }
+          }
+          mode = "aim";
+          resetBall();
+          updateHUD();
+        }
+
+        /* ================= Main loop ================= */
+        var lastT = 0;
+        function frame(ts) {
+          var t = ts / 1000;
+          var dt = Math.min(t - (lastT || t), 0.033);
+          lastT = t;
+          pulse = t;
+          if (netTimer < 2) netTimer += dt;
+
+          if (mode === "fly" && shot) {
+            var steps = Math.max(1, Math.ceil(dt / 0.008));
+            var sdt = dt / steps;
+            for (var i = 0; i < steps; i++) stepPhysics(sdt);
+            shot.time += dt;
+            var resting = ball.y >= FLOOR_Y - BALL_R - 0.5 && Math.abs(ball.vy) < 1 && Math.abs(ball.vx) < 8;
+            if (resting) shot.restTime += dt; else shot.restTime = 0;
+            var throughNet = shot.scored && ball.y > RIM.y + 110;
+            if (throughNet || shot.restTime > 0.55 || shot.time > 4) {
+              resolveShot();
+            }
+          }
+
+          ctx.clearRect(0, 0, VW, VH);
+          drawCourt();
+          drawSpots(t);
+          drawPlayer();
+          drawAim();
+          drawHoop();
+          drawBall();
+          drawConfetti(dt);
+          requestAnimationFrame(frame);
+        }
+
+        /* ================= Input ================= */
+        function toVirtual(e) {
+          var r = canvas.getBoundingClientRect();
+          return {
+            x: (e.clientX - r.left) * VW / r.width,
+            y: (e.clientY - r.top) * VH / r.height
+          };
+        }
+        canvas.addEventListener("pointerdown", function (e) {
+          if (mode !== "aim") return;
+          ac();
+          aiming = true;
+          dragStart = toVirtual(e);
+          dragCur = dragStart;
+          try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+          e.preventDefault();
+        });
+        canvas.addEventListener("pointermove", function (e) {
+          if (!aiming) return;
+          dragCur = toVirtual(e);
+        });
+        function endDrag(cancelled) {
+          if (!aiming) return;
+          aiming = false;
+          if (!cancelled && mode === "aim" && dragStart && dragCur) {
+            var pull = Math.hypot(dragStart.x - dragCur.x, dragStart.y - dragCur.y);
+            if (pull >= 14) {
+              var v = launchVelocity();
+              ball.vx = v.vx;
+              ball.vy = v.vy;
+              shots++;
+              shot = { scored: false, rim: false, board: false, time: 0, restTime: 0 };
+              mode = "fly";
+              updateHUD();
+            }
+          }
+          dragStart = dragCur = null;
+        }
+        canvas.addEventListener("pointerup", function () { endDrag(false); });
+        canvas.addEventListener("pointercancel", function () { endDrag(true); });
+
+        /* ================= Controls ================= */
+        function resetGame() {
+          spot = 0;
+          done = SPOTS.map(function () { return false; });
+          missesHere = 0;
+          shots = 0; makes = 0; streak = 0; bestStreak = 0; tripsBack = 0;
+          shot = null;
+          confetti = [];
+          mode = "aim";
+          document.getElementById("winVeil").hidden = true;
+          resetBall();
+          updateHUD();
+        }
+        document.getElementById("playAgainBtn").addEventListener("click", resetGame);
+        document.getElementById("restartBtn").addEventListener("click", function () {
+          resetGame();
+          showBanner("Fresh start — Spot 1", "", 1200);
+        });
+        var soundBtn = document.getElementById("soundBtn");
+        soundBtn.addEventListener("click", function () {
+          soundOn = !soundOn;
+          document.getElementById("soundOnIcon").style.display = soundOn ? "" : "none";
+          document.getElementById("soundOffIcon").style.display = soundOn ? "none" : "";
+          soundBtn.setAttribute("aria-label", soundOn ? "Turn sound off" : "Turn sound on");
+          if (soundOn) sSwish();
+        });
+
+        fit();
+        updateHUD();
+        requestAnimationFrame(frame);
+        // Refit once fonts/layout settle
+        setTimeout(fit, 300);
+      })();
+    </script>
+  </body>
+</html>
