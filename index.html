@@ -722,24 +722,8 @@
                 circleBounce(POST_R.x, POST_R.y, POST_R.r, 0.45)) {
               if (!shot.rim) { shot.rim = true; sRim(); }
             }
-            // backboard (solid rect)
-            var nx = Math.max(BOARD.x, Math.min(ball.x, BOARD.x + BOARD.w));
-            var ny = Math.max(BOARD.y, Math.min(ball.y, BOARD.y + BOARD.h));
-            var dx = ball.x - nx, dy = ball.y - ny;
-            var d2 = dx * dx + dy * dy;
-            if (d2 < BALL_R * BALL_R) {
-              var d = Math.sqrt(d2) || 0.001;
-              var ux = dx / d, uy = dy / d;
-              if (d2 === 0) { ux = 0; uy = 1; }
-              ball.x = nx + ux * BALL_R;
-              ball.y = ny + uy * BALL_R;
-              var vn = ball.vx * ux + ball.vy * uy;
-              if (vn < 0) {
-                ball.vx -= 1.55 * vn * ux;
-                ball.vy -= 1.55 * vn * uy;
-                if (!shot.board) { shot.board = true; sBoard(); }
-              }
-            }
+            // backboard: visual only — the ball passes straight through it
+            // and is never blocked, bounced, or deflected by the board.
             // score: center crosses rim line downward inside the hoop
             if (ball.vy > 0 && prevY < RIM.y && ball.y >= RIM.y &&
                 Math.abs(ball.x - RIM.x) < RIM.half - 7) {
