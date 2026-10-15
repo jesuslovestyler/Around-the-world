@@ -214,8 +214,8 @@
     <main class="wrap">
       <section class="hud" aria-label="Game status">
         <div class="spot-block">
-          <div class="spot-name" id="spotName">Left Corner</div>
-          <div class="spot-sub" id="spotSub">Spot 1 of 9</div>
+          <div class="spot-name" id="spotName">Left Wing</div>
+          <div class="spot-sub" id="spotSub">Spot 1 of 7</div>
         </div>
         <div class="dots" id="dots" aria-label="Spot progress"></div>
         <div class="stats">
@@ -258,7 +258,7 @@
       <p class="how">
         <strong>How to play:</strong> press and drag back from the ball to aim — the dotted arc shows the flight —
         then release to shoot. Sink a shot to move to the next spot. Miss twice at one spot and you go
-        back to Spot 1. Clear all 9 spots to go around the world.
+        back to Spot 1. Clear all 7 spots to go around the world.
       </p>
     </main>
 
@@ -276,10 +276,10 @@
         var GRAV = 1350;
         var BALL_R = 15;
 
-        var NAMES = ["Left Corner", "Left Wing", "Left Elbow", "Left Hash", "Top of the Key",
-                     "Right Hash", "Right Elbow", "Right Wing", "Right Corner"];
-        var ANG = [140, 122, 108, 97, 90, 83, 72, 58, 40];
-        var RAD = [520, 480, 470, 470, 480, 470, 470, 480, 520];
+        var NAMES = ["Left Wing", "Left Elbow", "Left Hash", "Top of the Key",
+                     "Right Hash", "Right Elbow", "Right Wing"];
+        var ANG = [122, 108, 97, 90, 83, 72, 58];
+        var RAD = [480, 470, 470, 480, 470, 470, 480];
         var SPOTS = ANG.map(function (a, i) {
           var r = a * Math.PI / 180;
           return { x: RIM.x + RAD[i] * Math.cos(r), y: RIM.y + RAD[i] * Math.sin(r), name: NAMES[i] };
