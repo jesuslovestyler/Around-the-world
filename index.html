@@ -86,7 +86,22 @@
       .pip { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--ink-soft); opacity: 0.55; }
       .pip.left { background: var(--gold); border-color: var(--gold); opacity: 1; }
       .pip.used { background: var(--bad); border-color: var(--bad); opacity: 1; }
-      .hud-btns { display: flex; gap: 8px; margin-left: auto; }
+      .hud-btns { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+      .home-pill {
+        height: 40px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--ink);
+        font-weight: 700;
+        font-size: 0.88rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+      }
+      .home-pill:hover { border-color: var(--accent); color: var(--accent); }
       .icon-btn {
         width: 40px; height: 40px; border-radius: 10px;
         border: 1px solid var(--line); background: var(--panel); color: var(--ink);
@@ -227,6 +242,7 @@
           </div>
         </div>
         <div class="hud-btns">
+          <a class="home-pill" href="https://jesuslovestyler.com/">⌂ Home</a>
           <button class="icon-btn" id="soundBtn" aria-label="Turn sound off" title="Sound on/off">
             <svg id="soundOnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>
             <svg id="soundOffIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M11 5 6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
@@ -888,5 +904,6 @@
         setTimeout(fit, 300);
       })();
     </script>
+    <script data-goatcounter="https://jesuslovestyler.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   </body>
 </html>
