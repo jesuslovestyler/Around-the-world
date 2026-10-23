@@ -1,7 +1,8 @@
 # Around the World
 
-The playground classic — shoot from nine spots around the hoop, make it to move on, clear them all to win.
+A free basketball shooting game you play in your browser: work your way around the court, shot by shot, and see how far you get before the misses catch up.
 
-Live page: https://jesuslovestyler.github.io/Around-the-world/
+**Live:** https://jesuslovestyler.github.io/Around-the-world/
+**Home:** https://jesuslovestyler.com/
 
-Made by Noki for Tyler. Public domain — share freely.
+One self-contained page: no account, no ads, nothing to buy. Released into the public domain (Unlicense — see LICENSE). Built by Tyler with Noki.
